@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 typedef bool boolean,Boolean;
-typedef struct dummyNode *Queue, *List;
+typedef struct dummyNode *Queue;
 typedef struct node *Node;
 
 struct dummyNode{
@@ -11,6 +11,7 @@ struct dummyNode{
     Node rear;
     int size;
 };
+
 struct node{
     int element;
     Node next;
@@ -23,35 +24,10 @@ Queue inicializeQueue(){
     Q->front=NULL;
     Q->rear =NULL;
 }
-List inicializeList(){
-    List L = malloc(sizeof(List));
-    L->front = NULL;
-    L->rear = NULL;
-    L->size = 0;
-}
 
 Boolean isEmpty(Queue Q){
     if(Q != NULL){
         return Q->size ==0;
-    }
-}
-
-void addElement(int element, List L){
-    Node n = malloc(sizeof(Node));
-    n->element = element;
-    n->next = NULL;
-    n->prev = NULL;
-    if(isEmpty(L)){
-        L->front = n;
-        L->rear = n;
-        ++L->size;
-    }
-    else{
-        Node aux = L->rear;
-        aux->next=n;
-        n->prev = aux;
-        L->rear = n;
-        ++L->size;
     }
 }
 
@@ -93,7 +69,6 @@ int dequeue(Queue Q){
     }
     return -1;
 }
-
 
 int peek(Queue Q){
     if (!isEmpty(Q)){

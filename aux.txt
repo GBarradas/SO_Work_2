@@ -1,0 +1,269 @@
+/*//PRINT
+            printf("| %3d   |",instant);
+            l = 0; 
+            for(int i = 0;i < numOfPrograms; i++){
+                if(process[i].state == NEW){
+                    printf("%s%d ",process[i].tag,i+1);
+                    if(i < 9)
+                        l += 3;
+                    else
+                        l += 4;  
+                }
+            }
+            for(l;l<newl;l++){
+            printf(" ");
+            }
+            printf("|");
+            l= 0;
+            Node aux = ready->front;
+            while(aux != NULL){
+                Process p = process[aux->element];
+                if(p.isThread)
+                    printf("%s%d ",p.tag,p.idThread+1);
+                else
+                    printf("%s%d ",p.tag,p.id+1);
+                if(strcmp(p.tag,"TH") == 0){
+                    if(p.id <= 9)
+                        l += 4;
+                    else
+                        l += 5;
+                }
+                else{
+                    if(p.id <= 9)
+                        l += 3;
+                    else
+                        l += 4;
+                    
+                }
+                aux = aux->next;
+            }
+            for(l;l<readyl;l++){
+            printf(" ");
+            }
+            printf("|");
+            if(id_running != -1 && process[id_running].state == RUN){
+                Process p = process[id_running];
+                if(strcmp(p.tag,"TH") == 0){
+                    if(p.id <= 9)
+                        printf(" %s%d |",p.tag,p.idThread+1);
+                    else
+                        printf("%s%d |",p.tag,p.idThread+1);
+                }
+                else{
+                    if(p.id <= 9)
+                        printf(" %s%d  |",p.tag,p.id+1);
+                    else
+                        printf(" %s%d |",p.tag,p.id+1);
+                }
+            }
+            else{
+                printf("     |");
+            }
+            l = 0;
+            aux = block->front;
+            while(aux != NULL){
+                Process p = process[aux->element];
+                if(p.isThread)
+                    printf("%s%d ",p.tag,p.idThread+1);
+                else
+                    printf("%s%d ",p.tag,p.id+1);
+                if(strcmp(p.tag,"TH") == 0){
+                    if(p.id <= 9)
+                        l += 4;
+                    else
+                        l += 5;
+                }
+                else{
+                    if(p.id <= 9)
+                        l += 3;
+                    else
+                        l += 4;
+                    
+                }
+                aux = aux->next;
+            }
+            int wb = 0;
+            while(wb < numOfPrograms){
+                Process p = process[wb];   
+                if(p.state == WBT){
+                    printf("%s%d ",p.tag,p.id+1);
+                    if(p.id <= 9)
+                        l += 3;
+                    else
+                        l += 4;
+                }
+                wb++;    
+                
+            }
+            for(l; l<blockl;++l){
+                printf(" ");
+            }
+            printf("|");
+            l = 0;
+            for( int i = 0; i < numOfPrograms;i++){
+                if(process[i].state==EXIT ){
+                    printf("P%d ",i+1);
+                    if(i < 9)
+                        l += 3;
+                    else
+                        l += 4;
+                }
+            }
+            for(l ;l < exitl; l++){
+                printf(" ");
+            }
+            printf("|%2d|(%2d,%2d)@",
+                value, 
+                mem[process[id_running].index],
+                mem[process[id_running].index+1]
+               
+            );
+            Process p0 = process[0];
+            printf("%2d@",p0.n_vars);
+            for(int i = 0 ; i < p0.n_vars; i++ ){
+
+                printf("%2d |",mem[p0.pc_vars+i]);
+            }
+            //Operation
+
+            if(!isEmpty(block)){
+                if(io == 0){
+                    process[peek(block)].state = READY;
+                    enqueue(dequeue(block), ready);
+                    io =IO_TIME;
+                }
+                io--;
+            }
+            for(int i = 0; i < numOfPrograms;i++){
+                if(process[i].state == EXIT){
+                    free_process(i);
+                    process[i].state = FINISH;
+                    id_running = -1;
+                }
+            }
+            if(id_running != -1){
+                quantum--;
+                if(quantum == 0){
+                    enqueue(id_running, ready);
+                    process[id_running].state =READY;
+                    id_running = -1;
+                }
+                else{
+                    value = operateProgram(id_running);
+                    if( value == PrintVariable){
+                        int var = mem[process[id_running].index-1];
+                        if(process[id_running].isThread){
+                            if(var >9){
+                                int pos = process[process[id_running].pai].pc_vars + var;
+                                std_out = mem[pos];
+                            }
+                            else{
+                                std_out = mem[process[id_running].pc_vars+var];
+                            }
+                        }
+                        else{
+                            std_out = mem[process[id_running].pc_vars+var];
+                        }
+                    }
+                }
+            }
+            if(id_running == -1 && !isEmpty(ready)){
+                id_running = dequeue(ready);
+                quantum = QUANTUM_TIME;
+                process[id_running].state =RUN;
+                 value = operateProgram(id_running);
+                if( value == PrintVariable){
+                        int var = mem[process[id_running].index-1];
+                        if(process[id_running].isThread){
+                            if(var >9){
+                                int pos = process[process[id_running].pai].pc_vars + var;
+                                std_out = mem[pos];
+                            }
+                            else{
+                                std_out = mem[process[id_running].pc_vars+var];
+                            }
+                        }
+                        else{
+                            std_out = mem[process[id_running].pc_vars+var];
+                        }
+                    }
+            }
+            for(int i = 0; i < numOfPrograms; i++){
+                if(process[i].state == NEW ){
+                    process[i].state = READY;
+                    if(!isEmpty(ready)){
+                        enqueue(i,ready);
+                    }
+                    else{
+                        if(id_running == -1){
+                            process[i].state = RUN;
+                            id_running = i;
+                        }
+                        else{
+                            enqueue(i,ready);
+                        }
+                    }
+                }
+                else if(programs[i].initial == instant+1){
+                    allocate(i);
+                    process[i].state = NEW;
+                }
+            }
+            printf("\n");
+
+            if(process[id_running].isThread){
+                Process p = process[id_running];
+                if(p.state == FINISH){
+                    process[p.pai].isWaiting[p.idThread] = false;
+                    id_running = -1;
+                    if(!isEmpty(ready)){
+                    id_running = dequeue(ready);
+                    process[id_running].state =RUN;
+                }
+                }
+            }
+            if(value == SegmentationFault){
+                printf(">Segmentation Fault %s%d terminad\n",process[id_running].tag,process[id_running].id);
+            }
+            if( value == InvalidVariable){
+               if(id_running != -1){
+                printf("> Invalid Variable in P%d\n",id_running);
+                id_running = -1;
+                }
+            }   
+            if(value == InputOutputCall){
+                process[id_running].state = BLOCKED;
+                enqueue(id_running,block);
+                id_running = -1;
+            }   
+            if(value == PrintVariable){
+                printf(">Print %d \n",std_out);
+            }     
+            if (value == WaitByThread){
+                int thread = mem[process[id_running].index-1];
+                process[id_running].isWaiting[thread-1] = true;
+                process[id_running].state = WBT;
+                if(!isEmpty(ready)){
+                    id_running = dequeue(ready);
+                    process[id_running].state =RUN;
+                }
+                
+            }
+
+            int nOfProgramsRunning = 0;
+            for(int i = 0; i < numOfPrograms; i++){
+                if(process[i].state != FINISH){
+                    nOfProgramsRunning++;
+                }
+            }
+            for(int c = 0; c < numOfPrograms; c++){
+                if(process[c].state == WBT && canProced(c)){
+                    process[c].state = READY;
+                    enqueue(c,ready);
+                }
+            }
+            if(nOfProgramsRunning == 0) break;
+            if(instant == 100) break;
+            instant++;
+            */
+            
