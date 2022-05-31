@@ -162,8 +162,10 @@ void allocate_thread(int idProgram, int idThread){
     int index_final;
     boolean allocate = false;
     if(p.thread_total > freeSpace){
+        process[numOfProcess].state = FINISH;
         printf("> Erro ao alocar o TH%d do P%d espaço de memoria insuficiente\n",idThread+1,idProgram+1);
         return;
+        numOfProcess++;
     }
     for(int i = lastIndex ; i < MEM_SIZE; i++){
         if(bit[i] == -1){
@@ -754,8 +756,10 @@ int executeProgram(int id){
 Boolean canProced(int id){
     Process p = process[id];
     for(int c = 0; c < MAX_TREADS; c++){
-        if(p.isWaiting[c])
-            return false;
+        if(p.isWaiting[c]){
+            if(process[p.threads[c]].state != FINISH)
+                return false;
+        }
     }
     return true;
 }
@@ -876,17 +880,18 @@ void runner(){
     R.blockl = 15;
     R.exitl = 8;
         printf("|   T   |NEW   |READY        | RUN |BLOCK          |EXIT    |\n");
-        printf("| %3d   |",R.instant);
         int l = 0;
+        newProcess();
+        printf("| %3d   |",R.instant);
         for(int i = 0; i < numOfPrograms;++i){
-            if(programs[i].initial == 0){
-                allocate(i);
+            if(process[i].state == NEW){
                 printf("%s%d ",process[i].tag,i+1);
                     if(process[i].id <= 9)
                         l += 3;
                     else
                         l += 4;
-           }
+            }
+           
         }
         for(l;l<R.newl;l++){
                 printf(" ");
@@ -897,7 +902,6 @@ void runner(){
             
             R.variableId = 0;
             R.instant ++;
-            printf("| %3d   |",R.instant);
 
             blockedtoReady();
             exit2finish();
@@ -906,6 +910,7 @@ void runner(){
             ready2run();
             newProcess();
             l = 0;
+            printf("| %3d   |",R.instant);
             for( int i = 0; i < numOfPrograms; i++){
                 Process p = process[i];
                 if(process[i].state == NEW){
