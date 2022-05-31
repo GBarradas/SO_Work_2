@@ -110,9 +110,8 @@ int bit[MEM_SIZE];
 int freeSpace;
 int lastIndex;
 
-int io;
 
-int getMax(int maxVal, int instruction, int var){
+int getMax(int maxVal, int instruction, int var){ //devolve o valor maximo entre o valor maximo atual e da instrução em analise
     switch(instruction){
         case ZERO:
         case COPY:
@@ -127,19 +126,19 @@ int getMax(int maxVal, int instruction, int var){
     }
 }
 
-void printMemory(){
+void printMemory(){             //imprime o array da memoria e o array de bits e o espaço livre  
     for(int i =0 ; i < MEM_SIZE; i=i+1)
         printf("%2d ",mem[i]);
-    printf("\n|%3d|\n",freeSpace);
     for(int i =0 ; i < MEM_SIZE; ++i)
         printf("%2d ",bit[i]);
+    printf("\nEspaço Livre: %3d\n",freeSpace);
     printf("\n\n");//
 }
 
-void removeProcess(int id){
+void removeProcess(int id){     //remove um processo da memoria
     process[id].state = FINISH;
     Process p = process[id];
-    for(int t = 0; t < p.numOfthreads; t++ ){
+    for(int t = 0; t < p.numOfthreads; t++ ){     //remover todas as threads do process
         if(process[p.threads[t]].state != FINISH){
             removeProcess(p.threads[t]);
         }
@@ -152,35 +151,33 @@ void removeProcess(int id){
     //printMemory();
 }
 
-void allocate_thread(int idProgram, int idThread){
+void allocateThread(int idProgram, int idThread){  //alocar uma Thread
     Program p = programs[idProgram];
     int segmento=-1;
-    int index_inicio;
-    int index_vars;
-    int index_final;
+    int pcIntructions;
+    int pcVars;
+    int indexFinal;
     boolean allocate = false;
-    if(p.tTotal > freeSpace){
+    if(p.tTotal > freeSpace){   //caso não haja espaço disponivel 
         process[numOfProcess].state = FINISH;
         printf("> Erro ao alocar o TH%d do P%d espaço de memoria insuficiente\n",idThread+1,idProgram+1);
         return;
-        numOfProcess++;
     }
-    for(int i = lastIndex ; i < MEM_SIZE; i++){
+    for(int i = lastIndex ; i < MEM_SIZE; i++){     //procura um segmento partindo do ultimo index utilizado
         if(bit[i] == -1){
             segmento ++;
             if(segmento == 0){
-                index_inicio = i;
+                pcIntructions = i;
                 segmento++;
             }
-            if(segmento == p.tTotal){
-                //printf("@%d, %d, --%d\n",lastIndex,index_inicio,p.tTotal);
-                lastIndex = index_inicio + p.tTotal;
-                index_vars = index_inicio + p.tNumInstructions * 2;
-                index_final = index_inicio + p.tTotal;
+            if(segmento == p.tTotal){       //se encontrar o segmento aloca a thread
+                lastIndex = pcIntructions + p.tTotal;
+                pcVars = pcIntructions + p.tNumInstructions * 2;
+                indexFinal = pcIntructions + p.tTotal;
 
-                process[numOfProcess].startIntant = index_inicio;
-                process[numOfProcess].pc = index_inicio;
-                process[numOfProcess].pcVars = index_vars;
+                process[numOfProcess].startIntant = pcIntructions;
+                process[numOfProcess].pc = pcIntructions;
+                process[numOfProcess].pcVars = pcVars;
                 process[numOfProcess].numVars = p.tNumVars;
                 process[numOfProcess].state = READY;
                 process[numOfProcess].tag = "TH";
@@ -191,12 +188,11 @@ void allocate_thread(int idProgram, int idThread){
                 process[numOfProcess].size = p.tTotal;
                 allocate = true;
                 freeSpace -= p.tTotal;
-                for (int j = index_inicio, k=p.tIndex; j<index_final; j++,k++){
+                for (int j = pcIntructions, k=p.tIndex; j<indexFinal; j++,k++){
                     bit[j] = numOfProcess;
                     mem[j] = p.instruction[k];
-                    //printf("%2d %2d\n",p.instruction[k],k);
                 }
-                for(int j =index_vars, k = process[idProgram].pcVars; j < index_final ; ++j ){
+                for(int j =pcVars, k = process[idProgram].pcVars; j < indexFinal ; ++j ){
                     bit[j] = numOfProcess;
                     mem[j] = mem[k];
                     k++;
@@ -206,25 +202,25 @@ void allocate_thread(int idProgram, int idThread){
         }
         else{
             segmento = -1;
-            index_inicio = -1;
+            pcIntructions = -1;
         }
     }
-    if(!allocate){
-        for(int i = lastIndex ; i < MEM_SIZE; i++){
+    if(!allocate){  //caso não aloque a thread começa a procurar do incio da memoria
+        for(int i = 0; i < MEM_SIZE; i++){
         if(bit[i] == -1){
             segmento ++;
             if(segmento == 0){
-                index_inicio = i;
+                pcIntructions = i;
                 segmento++;
             }
             if(segmento == p.tTotal){
-                lastIndex = index_inicio + p.tTotal;
-                index_vars = index_inicio + p.tNumInstructions * 2;
-                index_final = index_inicio + p.tTotal;
+                lastIndex = pcIntructions + p.tTotal;
+                pcVars = pcIntructions + p.tNumInstructions * 2;
+                indexFinal = pcIntructions + p.tTotal;
 
-                process[numOfProcess].startIntant = index_inicio;
-                process[numOfProcess].pc = index_inicio;
-                process[numOfProcess].pcVars = index_vars;
+                process[numOfProcess].startIntant = pcIntructions;
+                process[numOfProcess].pc = pcIntructions;
+                process[numOfProcess].pcVars = pcVars;
                 process[numOfProcess].numVars = p.tNumVars;
                 process[numOfProcess].state = READY;
                 process[numOfProcess].tag = "TH";
@@ -235,12 +231,12 @@ void allocate_thread(int idProgram, int idThread){
                 process[numOfProcess].size = p.tTotal;
                 allocate = true;
                 freeSpace -= p.tTotal;
-                for (int j = index_inicio, k=0; j<index_final; j++,k++){
+                for (int j = pcIntructions, k=0; j<indexFinal; j++,k++){
                     bit[j] = numOfProcess;
                     mem[j] = p.instruction[k];
                     //printf("%2d %2d\n",p.instruction[k],k);
                 }
-                for(int j =index_vars, k = process[idProgram].pcVars; j < index_final ; ++j ){
+                for(int j =pcVars, k = process[idProgram].pcVars; j < indexFinal ; ++j ){
                     bit[j] = numOfProcess;
                     mem[j] = mem[k];
                     k++;
@@ -250,7 +246,7 @@ void allocate_thread(int idProgram, int idThread){
             }
             else{
                 segmento = -1;
-                index_inicio = -1;
+                pcIntructions = -1;
             }
         }
     }
@@ -260,119 +256,128 @@ void allocate_thread(int idProgram, int idThread){
         enqueue(numOfProcess,ready);
         numOfProcess++;
     }
+    if(!allocate){
+         process[numOfProcess].state = FINISH;
+        printf("> Erro ao alocar o TH%d do P%d espaço de memoria insuficiente\n",idThread+1,idProgram+1);
+        return;
+    }
 
 }
 
-void allocate(int id){
+void allocate(int id){      //aloca um processo
     Program p = programs[id];
     int k;
     int segmento = -1;
-    int index_inicio = -1;
-    int index_vars, index_final;
+    int pcIntructions = -1;
+    int pcVars, indexFinal;
     int p_size = p.total;
     boolean allocate;
-    //printf("%d",p_size);
-    if (p_size > freeSpace){
+    if (p_size > freeSpace){  //caso não haja espaço suficiente disponivel
         process[id].state = FINISH;
         printf("> Erro ao alocar o P%d espaço de memoria insuficiente\n",id+1);
         return;
     }
 
-    for(int i=lastIndex; i < MEM_SIZE;i++){
+    for(int i=lastIndex; i < MEM_SIZE;i++){ //procura um segmento a partir do ultimo endereço utilizado
         if(bit[i] == -1){
             segmento ++;
             if(segmento == 0){
-                index_inicio = i;
+                pcIntructions = i;
                 segmento++;
             }
             if(segmento == p_size){
-                lastIndex = index_inicio + p_size;
-                index_vars = index_inicio + p.numInstructions*2;
-                index_final = index_inicio + p.total;
-                process[id].startIntant = index_inicio;
-                process[id].pcVars = index_vars;
+                lastIndex = pcIntructions + p_size;
+                pcVars = pcIntructions + p.numInstructions*2;
+                indexFinal = pcIntructions + p.total;
+                process[id].startIntant = pcIntructions;
+                process[id].pcVars = pcVars;
                 process[id].numVars = p.numVars;
                 process[id].state = NEW;
                 process[id].tag = "P";
                 process[id].id = id;
-                process[id].pc = index_inicio;
+                process[id].pc = pcIntructions;
                 process[id].isThread = false;
                 process[id].size = p_size;
                 freeSpace -= p_size;
-                //printf("%d %d %d %d \n",index_inicio,index_vars,index_final,p_size);
-                for (int j = index_inicio, k=0; j<index_final; j++,k++){
+                //printf("%d %d %d %d \n",pcIntructions,pcVars,indexFinal,p_size);
+                for (int j = pcIntructions, k=0; j<indexFinal; j++,k++){
                     bit[j] = id;
                     mem[j] = p.instruction[k];
                     //printf("%2d %2d\n",p.instruction[k],k);
                 }
-                for(int j =index_vars; j < index_final ; ++j ){
+                for(int j =pcVars; j < indexFinal ; ++j ){
                     bit[j] = id;
                     mem[j] = 0;
                 }
                 allocate = true;
 
-                if(index_inicio >= MEM_SIZE)
-                    index_inicio = 0;
+                if(pcIntructions >= MEM_SIZE)
+                    pcIntructions = 0;
             }
         }
         else{
             segmento = -1;
-            index_inicio = -1;
+            pcIntructions = -1;
         }
     }
-    if(!allocate){
+    if(!allocate){  //caso não aloque procura um segmento a partir do incio da memoria
         segmento = -1;
-        index_inicio = -1;
+        pcIntructions = -1;
 
         for(int i = 0; i <MEM_SIZE; ++i){
             if(bit[i] == -1){
                 segmento++;
                 if(segmento == 0){
-                    index_inicio = i;
+                    pcIntructions = i;
                     segmento ++;
                 }
                 if(segmento == p_size){
-                    lastIndex = index_inicio + p_size;
-                    index_vars = index_inicio + p.numInstructions*2;
-                    index_final = index_inicio + p.total;
-                    process[id].startIntant = index_inicio;
-                    process[id].pcVars = index_vars;
+                    lastIndex = pcIntructions + p_size;
+                    pcVars = pcIntructions + p.numInstructions*2;
+                    indexFinal = pcIntructions + p.total;
+                    process[id].startIntant = pcIntructions;
+                    process[id].pcVars = pcVars;
                     process[id].numVars = p.numVars;
                     process[id].state = NEW;
                     process[id].tag = "P";
                     process[id].id = id;
-                    process[id].pc = index_inicio;
+                    process[id].pc = pcIntructions;
                     process[id].isThread = false;
                     process[id].size = p_size;
                     freeSpace -= p_size;
 
-                    for (int j = index_inicio, k = 0; j < index_vars; j++,k++){
+                    for (int j = pcIntructions, k = 0; j < pcVars; j++,k++){
                         bit[j] = id;
                         mem[j] = p.instruction[k];
                     }
                     
-                    for (int j = index_vars; j < index_final;j++){
+                    for (int j = pcVars; j < indexFinal;j++){
                         bit[j] = id;
                         mem[j] = 0;
                     }
                     
                     allocate = true;
-                    if(index_inicio >= MEM_SIZE){
-                        index_inicio = 0;
+                    if(pcIntructions >= MEM_SIZE){
+                        pcIntructions = 0;
                     }
                     return;
                 }
             }
             else{
                 segmento = -1;
-                index_inicio = -1;
+                pcIntructions = -1;
             }
         }
+    }
+    if(!allocate){
+        process[id].state = FINISH;
+        printf("> Erro ao alocar o P%d espaço de memoria insuficiente\n",id+1);
+        return;
     }
 
 }
 
-int getInstructionID(char *instruction){
+int getInstructionID(char *instruction){    //determina o codigo de um intrução 
     if (instruction == NULL) return -1;
     if (strcmp(instruction, "ZERO") == 0)
         return ZERO;
@@ -412,7 +417,7 @@ int getInstructionID(char *instruction){
         return -1;
 }
 
-void readFile( FILE  *file){
+void readFile( FILE  *file){    //le o ficheiro e guarda as informações que le no array programs
     if (file == NULL) return ;
     int maxVal=0 , i = 0, j = -1 , nOfInstru=0;
     char *line;
@@ -420,10 +425,10 @@ void readFile( FILE  *file){
     while(getline(&line,&size, file) != -1){
         if(strcmp(line, "\n")!= 0){
             char *instruction = strtok(line, " ");
-            if(strcmp(instruction, "LOAD") == 0){
+            if(strcmp(instruction, "LOAD") == 0){ //incio de um programa e do seu bloco de codigo
                 programs[i].tStart = atoi(strtok(NULL, " "));
             }
-            else if(strcmp(instruction, "THRD") == 0){
+            else if(strcmp(instruction, "THRD") == 0){  //inicio de umm bloco de  codigo de Threads
                 nOfInstru++;
                 programs[i].numInstructions = nOfInstru;
                 programs[i].numVars = maxVal+1;
@@ -435,7 +440,7 @@ void readFile( FILE  *file){
                 programs[i].id = i;
                 programs[i].index = 0;
             }
-            else if(strcmp(instruction, "ENDP") == 0){
+            else if(strcmp(instruction, "ENDP") == 0){  //fim do programa
                 programs[i].tNumInstructions = nOfInstru;
                 if (maxVal < 10)
                     programs[i].tNumVars = maxVal;
@@ -464,7 +469,7 @@ void readFile( FILE  *file){
     programs[i].numVars = maxVal+1;
 }
 
-int getNumOfPrograms(FILE *file){
+int getNumOfPrograms(FILE *file){ //le o ficheiro e determina o numero de programas
     char *line;
     size_t size;
     int nOProg = 0;
@@ -480,7 +485,7 @@ int getNumOfPrograms(FILE *file){
     return nOProg;
 }
 
-int executeThread(int id){
+int executeThread(int id){  //executa a instrução de um thread
     //printf("TH%d",id);
     Process p = process[id];
     Process pai = process[p.pai];
@@ -500,11 +505,11 @@ int executeThread(int id){
             break;
         case COPY:
             if( value > 0 ||value > p.numVars){
-                if(value > 9){
+                if(value > 9){                  //variavel global
                     mem[pai.pcVars + value] = mem[p.pcVars];
                     process[id].pc +=2;
                 }
-                else{
+                else{                           //variavel local
                     mem[p.pcVars + value] = mem[p.pcVars];
                     process[id].pc +=2;
                 }
@@ -517,11 +522,11 @@ int executeThread(int id){
             break;
         case DECR:
             if( value > 0 || value > p.numVars){
-                if(value > 9){
+                if(value > 9){      // variavel global
                     mem[pai.pcVars + value]--;
                     process[id].pc +=2;
                 }
-                else{
+                else{              // variavel local
                     mem[p.pcVars + value]--;
                     process[id].pc +=2;
                 }
@@ -588,10 +593,10 @@ int executeThread(int id){
             }
             else{
                 process[id].pc += 2;
-                if(value < 9){
+                if(value <= 9){  // variavel local
                     mem[p.pcVars] = mem[p.pcVars] + mem[p.pcVars + value];
                 }
-                else{
+                else{           // variavel global
                     mem[p.pcVars] = mem[p.pcVars] + mem[pai.pcVars + value];
                 }
             }
@@ -602,10 +607,10 @@ int executeThread(int id){
                 }
                 else{
                     process[id].pc += 2;
-                    if(value < 9){
+                    if(value <= 9){  // variavel local
                         mem[p.pcVars] = mem[p.pcVars] * mem[p.pcVars + value];
                     }
-                    else{
+                    else{           // variavel global
                         mem[p.pcVars] = mem[p.pcVars] * mem[pai.pcVars + value];
                     }
                 }
@@ -623,7 +628,7 @@ int executeThread(int id){
     return OK;
 }
 
-int executeProgram(int id){
+int executeProgram(int id){ //executa a intrução de um programa
     Process p = process[id];
     if (p.isThread || strcmp(p.tag,"TH") == 0){
         int result = executeThread(id);
@@ -664,7 +669,7 @@ int executeProgram(int id){
             break;
         case NWTH:
             if(p.numOfthreads < MAX_TREADS){
-                allocate_thread(id,p.numOfthreads);
+                allocateThread(id,p.numOfthreads);
                 process[id].threads[p.numOfthreads] = numOfProcess;
                 process[id].numOfthreads++;
                 process[id].pc +=2;
@@ -751,7 +756,7 @@ int executeProgram(int id){
 
 }
 
-Boolean canProced(int id){
+Boolean canProced(int id){  // verifica se um processo que esta é espera de uma thread pode continuar
     Process p = process[id];
     for(int c = 0; c < MAX_TREADS; c++){
         if(p.isWaiting[c]){
@@ -762,7 +767,7 @@ Boolean canProced(int id){
     return true;
 }
 
-void blockedtoReady(){
+void blocked2Ready(){  // verifica se um processo pode passar de BLOCK para READY
     if(!isEmpty(block)){
         if(R.inputOutput == 0){
             process[peek(block)].state = READY;
@@ -773,7 +778,7 @@ void blockedtoReady(){
     }
 }
 
-void newProcess(){
+void newProcess(){      // verifica se podemo incializar um novo processo
    for( int i = 0; i < numOfPrograms; i++){
         Process p = process[i];
         if(programs[i].tStart == R.instant){
@@ -782,20 +787,17 @@ void newProcess(){
     }
 }
 
-void new2Ready(){
+void new2Ready(){   // passamos todos os processos em NEW para READY
     for( int i = 0; i < numOfPrograms; i++){
         Process p = process[i];
         if(p.state == NEW && programs[i].tStart != R.instant ){
             enqueue(i,ready);
             process[i].state = READY;
         }
-        else if(programs[i].tStart == R.instant){
-            allocate(i);
-        }
     }
 }
 
-void run2exit_blocked_run(){
+void run2exit_blocked_run(){    //executa o processo e verifica o quantum
     if(R.id_running !=-1){
                 R.quantum--;
                 if(R.quantum == 0 && isEmpty(ready)){
@@ -811,11 +813,11 @@ void run2exit_blocked_run(){
                     if( R.variableId == PrintVariable){
                         int var = mem[process[R.id_running].pc-1];
                         if(process[R.id_running].isThread){
-                            if(var >9){
+                            if(var >9){         //variavel global no caso de um thread
                                 int pos = process[process[R.id_running].pai].pcVars + var;
                                 R.output = mem[pos];
                             }
-                            else{
+                            else{              //variavel local no caso de um thread
                                 R.output = mem[process[R.id_running].pcVars+var];
                             }
                         }
@@ -828,7 +830,7 @@ void run2exit_blocked_run(){
             
 }
 
-void ready2run(){
+void ready2run(){   //caso não esteja nenhum process podemos por la um process
      if(R.id_running == -1 && !isEmpty(ready)){
                 R.id_running = dequeue(ready);
                 R.quantum = QUANTUM_TIME;
@@ -837,11 +839,11 @@ void ready2run(){
                 if( R.variableId == PrintVariable){
                     int var = mem[process[R.id_running].pc-1];
                     if(process[R.id_running].isThread){
-                        if(var >9){
+                        if(var >9){         //variavel global no caso de um thread
                             int pos = process[process[R.id_running].pai].pcVars + var;
                             R.output = mem[pos];
                         }
-                        else{
+                        else{             //variavel local no caso de um thread
                             R.output = mem[process[R.id_running].pcVars+var];
                         }
                     }
@@ -853,7 +855,7 @@ void ready2run(){
             
 }
 
-void exit2finish(){
+void exit2finish(){ // passa todos os processos de EXIT para FINISH
     for(int i = 0; i< numOfPrograms; i++){
                 if(process[i].state == EXIT){
                     removeProcess(i);
@@ -866,7 +868,7 @@ void exit2finish(){
             }
 }
 
-void runner(){
+void runner(){  //responsavel pela execução de todos os programas
 
     R.variableId = -1;
     R.id_running=-1;
@@ -901,7 +903,7 @@ void runner(){
             R.variableId = 0;
             R.instant ++;
 
-            blockedtoReady();
+            blocked2Ready();
             exit2finish();
             run2exit_blocked_run();
             new2Ready();
@@ -1095,7 +1097,7 @@ void runner(){
 }
 
 void main(){
-    char *path = "input1.txt";
+    char *path = "input4.txt";
     FILE *file = fopen(path, "r");
     if(file ==NULL){
         printf("Não foi possivel abrir o fichero!\n");

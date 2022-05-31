@@ -1053,8 +1053,7 @@ void main(){
     ready = inicializeQueue();
     block = inicializeQueue();
     runner();
-    //printf("\n");
-    //printMemory();
+ 
     
     
 }
