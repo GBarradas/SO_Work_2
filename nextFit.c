@@ -38,7 +38,7 @@
 typedef struct runner Runner;
 typedef struct Process Process;
 typedef struct Program Program;
-
+// Diversos estados
 enum States {
     EXIT,
     PRE_EXIT,
@@ -72,29 +72,27 @@ struct Process{
     int idThread;
     char *tag;
     int id;
-    int index;
-    int intr_start;
-    int pc_vars;
-    int n_vars;
+    int pc;
+    int startIntant;
+    int pcVars;
+    int numVars;
     enum States state;
-    int n_threads;
+    int numOfthreads;
     int threads[MAX_TREADS];
 };
 
 struct Program{
     int id;
-    int initial;
+    int tStart;
     int index;
-    int ins_start;
-    int var_start;
     int instruction[200];
-    int n_instructions;
-    int n_vars;
+    int numInstructions;
+    int numVars;
     int total;
-    int thread_n_instructions;
-    int thread_index;
-    int thread_n_var;
-    int thread_total;
+    int tNumInstructions;
+    int tIndex;
+    int tNumVars;
+    int tTotal;
     
 };
 
@@ -141,12 +139,12 @@ void printMemory(){
 void removeProcess(int id){
     process[id].state = FINISH;
     Process p = process[id];
-    for(int t = 0; t < p.n_threads; t++ ){
+    for(int t = 0; t < p.numOfthreads; t++ ){
         if(process[p.threads[t]].state != FINISH){
             removeProcess(p.threads[t]);
         }
     }
-    for(int i = p.intr_start; i < p.intr_start + p.size ; ++i){
+    for(int i = p.startIntant; i < p.startIntant + p.size ; ++i){
         mem[i] = 0;
         bit[i] = -1;
     }
@@ -161,7 +159,7 @@ void allocate_thread(int idProgram, int idThread){
     int index_vars;
     int index_final;
     boolean allocate = false;
-    if(p.thread_total > freeSpace){
+    if(p.tTotal > freeSpace){
         process[numOfProcess].state = FINISH;
         printf("> Erro ao alocar o TH%d do P%d espaço de memoria insuficiente\n",idThread+1,idProgram+1);
         return;
@@ -174,31 +172,31 @@ void allocate_thread(int idProgram, int idThread){
                 index_inicio = i;
                 segmento++;
             }
-            if(segmento == p.thread_total){
-                //printf("@%d, %d, --%d\n",lastIndex,index_inicio,p.thread_total);
-                lastIndex = index_inicio + p.thread_total;
-                index_vars = index_inicio + p.thread_n_instructions * 2;
-                index_final = index_inicio + p.thread_total;
+            if(segmento == p.tTotal){
+                //printf("@%d, %d, --%d\n",lastIndex,index_inicio,p.tTotal);
+                lastIndex = index_inicio + p.tTotal;
+                index_vars = index_inicio + p.tNumInstructions * 2;
+                index_final = index_inicio + p.tTotal;
 
-                process[numOfProcess].intr_start = index_inicio;
-                process[numOfProcess].index = index_inicio;
-                process[numOfProcess].pc_vars = index_vars;
-                process[numOfProcess].n_vars = p.thread_n_var;
+                process[numOfProcess].startIntant = index_inicio;
+                process[numOfProcess].pc = index_inicio;
+                process[numOfProcess].pcVars = index_vars;
+                process[numOfProcess].numVars = p.tNumVars;
                 process[numOfProcess].state = READY;
                 process[numOfProcess].tag = "TH";
                 process[numOfProcess].idThread = idThread;
                 process[numOfProcess].pai = idProgram;
                 process[numOfProcess].id = numOfProcess;
                 process[numOfProcess].isThread = true;
-                process[numOfProcess].size = p.thread_total;
+                process[numOfProcess].size = p.tTotal;
                 allocate = true;
-                freeSpace -= p.thread_total;
-                for (int j = index_inicio, k=p.thread_index; j<index_final; j++,k++){
+                freeSpace -= p.tTotal;
+                for (int j = index_inicio, k=p.tIndex; j<index_final; j++,k++){
                     bit[j] = numOfProcess;
                     mem[j] = p.instruction[k];
                     //printf("%2d %2d\n",p.instruction[k],k);
                 }
-                for(int j =index_vars, k = process[idProgram].pc_vars; j < index_final ; ++j ){
+                for(int j =index_vars, k = process[idProgram].pcVars; j < index_final ; ++j ){
                     bit[j] = numOfProcess;
                     mem[j] = mem[k];
                     k++;
@@ -219,30 +217,30 @@ void allocate_thread(int idProgram, int idThread){
                 index_inicio = i;
                 segmento++;
             }
-            if(segmento == p.thread_total){
-                lastIndex = index_inicio + p.thread_total;
-                index_vars = index_inicio + p.thread_n_instructions * 2;
-                index_final = index_inicio + p.thread_total;
+            if(segmento == p.tTotal){
+                lastIndex = index_inicio + p.tTotal;
+                index_vars = index_inicio + p.tNumInstructions * 2;
+                index_final = index_inicio + p.tTotal;
 
-                process[numOfProcess].intr_start = index_inicio;
-                process[numOfProcess].index = index_inicio;
-                process[numOfProcess].pc_vars = index_vars;
-                process[numOfProcess].n_vars = p.thread_n_var;
+                process[numOfProcess].startIntant = index_inicio;
+                process[numOfProcess].pc = index_inicio;
+                process[numOfProcess].pcVars = index_vars;
+                process[numOfProcess].numVars = p.tNumVars;
                 process[numOfProcess].state = READY;
                 process[numOfProcess].tag = "TH";
                 process[numOfProcess].idThread = idThread;
                 process[numOfProcess].pai = idProgram;
                 process[numOfProcess].id = numOfProcess;
                 process[numOfProcess].isThread = true;
-                process[numOfProcess].size = p.thread_total;
+                process[numOfProcess].size = p.tTotal;
                 allocate = true;
-                freeSpace -= p.thread_total;
+                freeSpace -= p.tTotal;
                 for (int j = index_inicio, k=0; j<index_final; j++,k++){
                     bit[j] = numOfProcess;
                     mem[j] = p.instruction[k];
                     //printf("%2d %2d\n",p.instruction[k],k);
                 }
-                for(int j =index_vars, k = process[idProgram].pc_vars; j < index_final ; ++j ){
+                for(int j =index_vars, k = process[idProgram].pcVars; j < index_final ; ++j ){
                     bit[j] = numOfProcess;
                     mem[j] = mem[k];
                     k++;
@@ -257,8 +255,8 @@ void allocate_thread(int idProgram, int idThread){
         }
     }
     if(allocate){
-        mem[process[numOfProcess].pc_vars] = mem[process[idProgram].pc_vars+idThread]; 
-        mem[process[numOfProcess].pc_vars+1] = idThread;
+        mem[process[numOfProcess].pcVars] = mem[process[idProgram].pcVars+idThread]; 
+        mem[process[numOfProcess].pcVars+1] = idThread;
         enqueue(numOfProcess,ready);
         numOfProcess++;
     }
@@ -289,15 +287,15 @@ void allocate(int id){
             }
             if(segmento == p_size){
                 lastIndex = index_inicio + p_size;
-                index_vars = index_inicio + p.n_instructions*2;
+                index_vars = index_inicio + p.numInstructions*2;
                 index_final = index_inicio + p.total;
-                process[id].intr_start = index_inicio;
-                process[id].pc_vars = index_vars;
-                process[id].n_vars = p.n_vars;
+                process[id].startIntant = index_inicio;
+                process[id].pcVars = index_vars;
+                process[id].numVars = p.numVars;
                 process[id].state = NEW;
                 process[id].tag = "P";
                 process[id].id = id;
-                process[id].index = index_inicio;
+                process[id].pc = index_inicio;
                 process[id].isThread = false;
                 process[id].size = p_size;
                 freeSpace -= p_size;
@@ -335,15 +333,15 @@ void allocate(int id){
                 }
                 if(segmento == p_size){
                     lastIndex = index_inicio + p_size;
-                    index_vars = index_inicio + p.n_instructions*2;
+                    index_vars = index_inicio + p.numInstructions*2;
                     index_final = index_inicio + p.total;
-                    process[id].intr_start = index_inicio;
-                    process[id].pc_vars = index_vars;
-                    process[id].n_vars = p.n_vars;
+                    process[id].startIntant = index_inicio;
+                    process[id].pcVars = index_vars;
+                    process[id].numVars = p.numVars;
                     process[id].state = NEW;
                     process[id].tag = "P";
                     process[id].id = id;
-                    process[id].index = index_inicio;
+                    process[id].pc = index_inicio;
                     process[id].isThread = false;
                     process[id].size = p_size;
                     freeSpace -= p_size;
@@ -423,27 +421,27 @@ void readFile( FILE  *file){
         if(strcmp(line, "\n")!= 0){
             char *instruction = strtok(line, " ");
             if(strcmp(instruction, "LOAD") == 0){
-                programs[i].initial = atoi(strtok(NULL, " "));
+                programs[i].tStart = atoi(strtok(NULL, " "));
             }
             else if(strcmp(instruction, "THRD") == 0){
                 nOfInstru++;
-                programs[i].n_instructions = nOfInstru;
-                programs[i].n_vars = maxVal+1;
-                programs[i].total = programs[i].n_vars + (programs[i].n_instructions) * 2;
-                programs[i].instruction[(programs[i].n_instructions*2) -2] = THRD;
+                programs[i].numInstructions = nOfInstru;
+                programs[i].numVars = maxVal+1;
+                programs[i].total = programs[i].numVars + (programs[i].numInstructions) * 2;
+                programs[i].instruction[(programs[i].numInstructions*2) -2] = THRD;
                 maxVal = 0;
                 nOfInstru = 0;
-                programs[i].thread_index = j+1;
+                programs[i].tIndex = j+1;
                 programs[i].id = i;
                 programs[i].index = 0;
             }
             else if(strcmp(instruction, "ENDP") == 0){
-                programs[i].thread_n_instructions = nOfInstru;
+                programs[i].tNumInstructions = nOfInstru;
                 if (maxVal < 10)
-                    programs[i].thread_n_var = maxVal;
+                    programs[i].tNumVars = maxVal;
                 else   
-                    programs[i].thread_n_var = 9;
-                programs[i].thread_total = programs[i].thread_n_var + (programs[i].thread_n_instructions ) * 2;
+                    programs[i].tNumVars = 9;
+                programs[i].tTotal = programs[i].tNumVars + (programs[i].tNumInstructions ) * 2;
                 maxVal = 0;
                 nOfInstru = 0;
                 j = -1;
@@ -462,8 +460,8 @@ void readFile( FILE  *file){
         }
 
     }
-    programs[i].n_instructions = nOfInstru;
-    programs[i].n_vars = maxVal+1;
+    programs[i].numInstructions = nOfInstru;
+    programs[i].numVars = maxVal+1;
 }
 
 int getNumOfPrograms(FILE *file){
@@ -486,29 +484,29 @@ int executeThread(int id){
     //printf("TH%d",id);
     Process p = process[id];
     Process pai = process[p.pai];
-    int index = p.index;
+    int index = p.pc;
     int instruction = mem[index];
     int value = mem[index+1];
     int dest;
-            //printf("@%d %d, index : %d, %d",instruction,value,index,p.pc_vars);
-    if(index >= p.pc_vars || index < p.intr_start){
+            //printf("@%d %d, index : %d, %d",instruction,value,index,p.pcVars);
+    if(index >= p.pcVars || index < p.startIntant){
         removeProcess(id);
         return SegmentationFault;
     }
     switch(instruction){
         case ZERO:
-                mem[p.pc_vars] = value;
-                process[id].index += 2;
+                mem[p.pcVars] = value;
+                process[id].pc += 2;
             break;
         case COPY:
-            if( value > 0 ||value > p.n_vars){
+            if( value > 0 ||value > p.numVars){
                 if(value > 9){
-                    mem[pai.pc_vars + value] = mem[p.pc_vars];
-                    process[id].index +=2;
+                    mem[pai.pcVars + value] = mem[p.pcVars];
+                    process[id].pc +=2;
                 }
                 else{
-                    mem[p.pc_vars + value] = mem[p.pc_vars];
-                    process[id].index +=2;
+                    mem[p.pcVars + value] = mem[p.pcVars];
+                    process[id].pc +=2;
                 }
 
             }
@@ -518,14 +516,14 @@ int executeThread(int id){
             }
             break;
         case DECR:
-            if( value > 0 || value > p.n_vars){
+            if( value > 0 || value > p.numVars){
                 if(value > 9){
-                    mem[pai.pc_vars + value]--;
-                    process[id].index +=2;
+                    mem[pai.pcVars + value]--;
+                    process[id].pc +=2;
                 }
                 else{
-                    mem[p.pc_vars + value]--;
-                    process[id].index +=2;
+                    mem[p.pcVars + value]--;
+                    process[id].pc +=2;
                 }
 
             }
@@ -536,47 +534,47 @@ int executeThread(int id){
             break;
         case JFRW:
             dest = index + value*2;
-            if(dest >= p.pc_vars || dest < p.intr_start){
+            if(dest >= p.pcVars || dest < p.startIntant){
                 removeProcess(id);
                 return SegmentationFault;
             }
             else{
-                process[id].index = dest;
+                process[id].pc = dest;
             }
             break;
         case JBCK:
         dest = index - value*2;
-            if(dest >= p.pc_vars || dest < p.intr_start){
+            if(dest >= p.pcVars || dest < p.startIntant){
                 removeProcess(id);
                 return SegmentationFault;
             }
             else{
-                process[id].index = dest;
+                process[id].pc = dest;
             }
             break;
         case DISK:
-            process[id].index +=2;
+            process[id].pc +=2;
             return InputOutputCall;
             break;
         case JIFZ:
             dest = index + 6;
-            int memindex = value > 9 ? pai.pc_vars+value : p.pc_vars+value;
+            int memindex = value > 9 ? pai.pcVars+value : p.pcVars+value;
             if(mem[memindex] == 0){
-                if(dest >= p.pc_vars || dest < p.intr_start){
+                if(dest >= p.pcVars || dest < p.startIntant){
                     removeProcess(id);
                     return SegmentationFault;
                 }
                 else{
-                    process[id].index = dest;
+                    process[id].pc = dest;
                 }
             }
             else{
-                process[id].index += 2;
+                process[id].pc += 2;
             }
             break;
         case PRNT:
             if(value >= 0){
-                process[id].index += 2;
+                process[id].pc += 2;
                 return PrintVariable;
             }
             else{
@@ -589,12 +587,12 @@ int executeThread(int id){
                 return SegmentationFault;
             }
             else{
-                process[id].index += 2;
+                process[id].pc += 2;
                 if(value < 9){
-                    mem[p.pc_vars] = mem[p.pc_vars] + mem[p.pc_vars + value];
+                    mem[p.pcVars] = mem[p.pcVars] + mem[p.pcVars + value];
                 }
                 else{
-                    mem[p.pc_vars] = mem[p.pc_vars] + mem[pai.pc_vars + value];
+                    mem[p.pcVars] = mem[p.pcVars] + mem[pai.pcVars + value];
                 }
             }
             break;
@@ -603,12 +601,12 @@ int executeThread(int id){
                     return SegmentationFault;
                 }
                 else{
-                    process[id].index += 2;
+                    process[id].pc += 2;
                     if(value < 9){
-                        mem[p.pc_vars] = mem[p.pc_vars] * mem[p.pc_vars + value];
+                        mem[p.pcVars] = mem[p.pcVars] * mem[p.pcVars + value];
                     }
                     else{
-                        mem[p.pc_vars] = mem[p.pc_vars] * mem[pai.pc_vars + value];
+                        mem[p.pcVars] = mem[p.pcVars] * mem[pai.pcVars + value];
                     }
                 }
             break;
@@ -631,23 +629,23 @@ int executeProgram(int id){
         int result = executeThread(id);
         return result;
     }
-    int index = p.index;
+    int index = p.pc;
     int instruction = mem[index];
     int value = mem[index +1];
     int dest;
-    if(index >= p.pc_vars || index < p.intr_start){
+    if(index >= p.pcVars || index < p.startIntant){
         removeProcess(id);
         return SegmentationFault;
     }
     switch(instruction){
         case ZERO:
-            mem[p.pc_vars] = value;
-            process[id].index += 2;
+            mem[p.pcVars] = value;
+            process[id].pc += 2;
             break;
         case COPY:
-            if(value >0 || value > p.pc_vars){
-                mem[p.pc_vars + value] = mem[p.pc_vars];
-                process[id].index +=2;
+            if(value >0 || value > p.pcVars){
+                mem[p.pcVars + value] = mem[p.pcVars];
+                process[id].pc +=2;
             }
             else{
                 removeProcess(id);
@@ -655,9 +653,9 @@ int executeProgram(int id){
             }
             break;
         case DECR:
-            if(value >0 || value > p.n_vars){
-                mem[p.pc_vars + value]--;
-                process[id].index +=2;
+            if(value >0 || value > p.numVars){
+                mem[p.pcVars + value]--;
+                process[id].pc +=2;
             }
             else{
                 removeProcess(id);
@@ -665,55 +663,55 @@ int executeProgram(int id){
             }
             break;
         case NWTH:
-            if(p.n_threads < MAX_TREADS){
-                allocate_thread(id,p.n_threads);
-                process[id].threads[p.n_threads] = numOfProcess;
-                process[id].n_threads++;
-                process[id].index +=2;
+            if(p.numOfthreads < MAX_TREADS){
+                allocate_thread(id,p.numOfthreads);
+                process[id].threads[p.numOfthreads] = numOfProcess;
+                process[id].numOfthreads++;
+                process[id].pc +=2;
             }
             break;
         case JFRW:
             dest = index + value *2;
-            if(dest >= p.pc_vars|| dest < p.intr_start){
+            if(dest >= p.pcVars|| dest < p.startIntant){
                 removeProcess(id);
                 return SegmentationFault;
             }
             else{
-                process[id].index = dest;
+                process[id].pc = dest;
             }
             break;
         case JBCK:
             dest = index - value *2;
-            if(dest >= p.pc_vars|| dest < p.intr_start){
+            if(dest >= p.pcVars|| dest < p.startIntant){
                 removeProcess(id);
                 return SegmentationFault;
             }
             else{
-                process[id].index = dest;
+                process[id].pc = dest;
             }
             break;
         case DISK:
-            process[id].index +=2;
+            process[id].pc +=2;
             return InputOutputCall;
             break;
         case JIFZ:
             dest = index + 4;
-            if(mem[p.pc_vars+value] == 0){
-                if(dest >= p.pc_vars || dest < p.intr_start){
+            if(mem[p.pcVars+value] == 0){
+                if(dest >= p.pcVars || dest < p.startIntant){
                     removeProcess(id);
                     return SegmentationFault;
                 }
                 else{
-                    process[id].index = dest;
+                    process[id].pc = dest;
                 }
             }
             else{
-                process[id].index += 2;
+                process[id].pc += 2;
             }
             break;
         case PRNT:
             if(value >= 0){
-                process[id].index += 2;
+                process[id].pc += 2;
                 return PrintVariable;
             }
             else{
@@ -722,23 +720,23 @@ int executeProgram(int id){
             }
             break;
         case JOIN:
-            process[id].index += 2;
+            process[id].pc += 2;
             return WaitByThread;
             break;
         case ADDX:
             if(value < 0)
                 return SegmentationFault;
             else{
-                mem[p.pc_vars] = mem[p.pc_vars] + mem[p.pc_vars+ value];
-                process[id].index += 2;
+                mem[p.pcVars] = mem[p.pcVars] + mem[p.pcVars+ value];
+                process[id].pc += 2;
             }
             break;
         case MULX:
             if(value < 0)
                 return SegmentationFault;
             else{
-                mem[p.pc_vars] = mem[p.pc_vars] * mem[p.pc_vars+ value];
-                process[id].index +=  2;
+                mem[p.pcVars] = mem[p.pcVars] * mem[p.pcVars+ value];
+                process[id].pc +=  2;
             }
             break;
 
@@ -778,7 +776,7 @@ void blockedtoReady(){
 void newProcess(){
    for( int i = 0; i < numOfPrograms; i++){
         Process p = process[i];
-        if(programs[i].initial == R.instant){
+        if(programs[i].tStart == R.instant){
             allocate(i);
         }
     }
@@ -787,11 +785,11 @@ void newProcess(){
 void new2Ready(){
     for( int i = 0; i < numOfPrograms; i++){
         Process p = process[i];
-        if(p.state == NEW && programs[i].initial != R.instant ){
+        if(p.state == NEW && programs[i].tStart != R.instant ){
             enqueue(i,ready);
             process[i].state = READY;
         }
-        else if(programs[i].initial == R.instant){
+        else if(programs[i].tStart == R.instant){
             allocate(i);
         }
     }
@@ -811,18 +809,18 @@ void run2exit_blocked_run(){
                 else{
                     R.variableId = executeProgram(R.id_running);
                     if( R.variableId == PrintVariable){
-                        int var = mem[process[R.id_running].index-1];
+                        int var = mem[process[R.id_running].pc-1];
                         if(process[R.id_running].isThread){
                             if(var >9){
-                                int pos = process[process[R.id_running].pai].pc_vars + var;
+                                int pos = process[process[R.id_running].pai].pcVars + var;
                                 R.output = mem[pos];
                             }
                             else{
-                                R.output = mem[process[R.id_running].pc_vars+var];
+                                R.output = mem[process[R.id_running].pcVars+var];
                             }
                         }
                         else{
-                            R.output = mem[process[R.id_running].pc_vars+var];
+                            R.output = mem[process[R.id_running].pcVars+var];
                         }
                     }
                 }
@@ -837,18 +835,18 @@ void ready2run(){
                 process[R.id_running].state = RUN;
                 R.variableId = executeProgram(R.id_running);
                 if( R.variableId == PrintVariable){
-                    int var = mem[process[R.id_running].index-1];
+                    int var = mem[process[R.id_running].pc-1];
                     if(process[R.id_running].isThread){
                         if(var >9){
-                            int pos = process[process[R.id_running].pai].pc_vars + var;
+                            int pos = process[process[R.id_running].pai].pcVars + var;
                             R.output = mem[pos];
                         }
                         else{
-                            R.output = mem[process[R.id_running].pc_vars+var];
+                            R.output = mem[process[R.id_running].pcVars+var];
                         }
                     }
                     else{
-                        R.output = mem[process[R.id_running].pc_vars+var];
+                        R.output = mem[process[R.id_running].pcVars+var];
                     }
                 }
             }
@@ -1037,7 +1035,7 @@ void runner(){
                 R.id_running = -1;
             }
             if (R.variableId == WaitByThread){
-                int thread = mem[process[R.id_running].index-1];
+                int thread = mem[process[R.id_running].pc-1];
                 process[R.id_running].isWaiting[thread-1] = true;
                 process[R.id_running].state = WBT;
                 R.id_running = -1;
