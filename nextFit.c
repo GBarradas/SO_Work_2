@@ -52,47 +52,47 @@ enum States {
 };
 
 struct runner{
-    int output;
-    int variableId;
-    int id_running;
-    int quantum;
-    int inputOutput;
-    int instant;
-    int newl;
-    int readyl;
-    int blockl;
-    int exitl;
+    int output;             //valor a imprimir no caso do processo pedir para imprimir
+    int variableId;         // variavel em analise
+    int id_running;         // id do processo que se encpntra no estado RUN caso não esteja nenhum toma o valor de (-1)
+    int quantum;            //quantum da instrunção atual
+    int inputOutput;        //instantes restante para o processo no inicio da fila block passar para ready
+    int instant;            // instante atual
+    //auxilares no para ajudar a imprimir a tabela dos resultados
+    int newl;               //tamanho da coluna new
+    int readyl;             //tamanho da coluna ready
+    int blockl;             //tamanho da coluna block
+    int exitl;              //tamanho da coluna exit
 };
 
 struct Process{
-    Boolean isThread;
-    Boolean isWaiting[MAX_TREADS];
-    int size;
-    int pai;
-    int idThread;
-    char *tag;
-    int id;
-    int pc;
-    int startIntant;
-    int pcVars;
-    int numVars;
-    enum States state;
-    int numOfthreads;
-    int threads[MAX_TREADS];
+    Boolean isThread;                   //indica se é uma thread
+    Boolean isWaiting[MAX_TREADS];      //indica se um processo esta ha espera de uma thread
+    int size;                           //tamanho de um processo
+    int pai;                            //id do processo pai
+    int idThread;                       //id da thread (diferente do id geral dos processos)
+    char *tag;                          // "P" ou "TH"
+    int id;                             
+    int pc;                             //programCounter
+    int startIntant;                    //inicio do blodo de codigo na memoria
+    int pcVars;                         //incio do bloco das variaveis na memoria
+    int numVars;                        // numero de variaveis de um processo
+    enum States state;                  // estado de um processo
+    int numOfthreads;                   // numero de threads que um processo tem
+    int threads[MAX_TREADS];            //gurada o iid das threads do processo
 };
 
 struct Program{
-    int id;
-    int tStart;
-    int index;
-    int instruction[200];
-    int numInstructions;
-    int numVars;
-    int total;
-    int tNumInstructions;
-    int tIndex;
-    int tNumVars;
-    int tTotal;
+    int id;                             //id do programa
+    int tStart;                         //instante em que o pragama se inicia                        
+    int instruction[200];               //intruçoes ja em codigo e suas variaveis
+    int numInstructions;                // numero de instruçoes do programa
+    int numVars;                        // numero de variaveis do programa
+    int total;                          // espaço total necessario para o programa
+    int tNumInstructions;               // numero de instruçoes da thread
+    int tIndex;                         // index de onde começa o bloco de codigo da thread
+    int tNumVars;                       // numero de variaveis da thread
+    int tTotal;                         //espaço total necessario para a thread
     
 };
 
@@ -104,7 +104,7 @@ Queue ready;
 Queue block;
 int numOfProcess;
 int numOfPrograms;
-
+// memoria
 int mem[MEM_SIZE];
 int bit[MEM_SIZE];
 int freeSpace;
@@ -126,7 +126,7 @@ int getMax(int maxVal, int instruction, int var){ //devolve o valor maximo entre
     }
 }
 
-void printMemory(){             //imprime o array da memoria e o array de bits e o espaço livre  
+void printMemory(void){             //imprime o array da memoria e o array de bits e o espaço livre  
     for(int i =0 ; i < MEM_SIZE; i=i+1)
         printf("%2d ",mem[i]);
     for(int i =0 ; i < MEM_SIZE; ++i)
@@ -438,7 +438,7 @@ void readFile( FILE  *file){    //le o ficheiro e guarda as informações que le
                 nOfInstru = 0;
                 programs[i].tIndex = j+1;
                 programs[i].id = i;
-                programs[i].index = 0;
+                process[i].state = NONCREATE;
             }
             else if(strcmp(instruction, "ENDP") == 0){  //fim do programa
                 programs[i].tNumInstructions = nOfInstru;
@@ -909,6 +909,7 @@ void runner(){  //responsavel pela execução de todos os programas
             new2Ready();
             ready2run();
             newProcess();
+
             l = 0;
             printf("| %3d   |",R.instant);
             for( int i = 0; i < numOfPrograms; i++){
@@ -927,7 +928,7 @@ void runner(){  //responsavel pela execução de todos os programas
             printf("|");
             l= 0;
             Node aux = ready->front;
-            while(aux != NULL){
+            while(aux != NULL){         //imprimir a fila ready
                 Process p = process[aux->element];
                 if(p.isThread)
                     printf("%s%d ",p.tag,p.idThread+1);
@@ -948,11 +949,11 @@ void runner(){  //responsavel pela execução de todos os programas
                 }
                 aux = aux->next;
             }
-            for(l;l<R.readyl;l++){
+            for(l;l<R.readyl;l++){  
             printf(" ");
             }
-            printf("|");
-            if(R.id_running == -1){
+            printf("|");    
+            if(R.id_running == -1){     //caso nenhum programa esta em RUN
                 printf("     |");
             }
             else{
@@ -972,7 +973,7 @@ void runner(){  //responsavel pela execução de todos os programas
             }
             l = 0;
             aux = block->front;
-            while(aux != NULL){
+            while(aux != NULL){     //imprimir a fila block
                 Process p = process[aux->element];
                 if(p.isThread)
                     printf("%s%d ",p.tag,p.idThread+1);
@@ -994,7 +995,7 @@ void runner(){  //responsavel pela execução de todos os programas
                 aux = aux->next;
             }
             int wb = 0;
-            while(wb < numOfPrograms){
+            while(wb < numOfPrograms){  // imprimir junto com a fila block os processos que se encontre á espera de uma thread
                 Process p = process[wb];   
                 if(p.state == WBT){
                     printf("%s%d ",p.tag,p.id+1);
@@ -1011,7 +1012,7 @@ void runner(){  //responsavel pela execução de todos os programas
             }
             printf("|");
             l = 0;
-            for( int i = 0; i < numOfPrograms;i++){
+            for( int i = 0; i < numOfPrograms;i++){     //imprime programa no estado exit
                 if(process[i].state==EXIT ){
                     printf("P%d ",i+1);
                     if(i < 9)
@@ -1025,58 +1026,58 @@ void runner(){  //responsavel pela execução de todos os programas
             }
 
             printf("|\n");
-            if(process[R.id_running].state == PRE_EXIT){
+            if(process[R.id_running].state == PRE_EXIT){    // caso o programa deixe de correr por que vai terminar
                 R.id_running = -1;
             }
-            if(R.variableId == PrintVariable){
+            if(R.variableId == PrintVariable){          // imprimir a variavel no caso de instrução executada ser PRNT
                 printf(">Print %d \n",R.output);
             }
-            if(R.variableId == InputOutputCall){
-                process[R.id_running].state = BLOCKED;
+            if(R.variableId == InputOutputCall){        //caso a intrução executada seja DISK
+                process[R.id_running].state = BLOCKED;  //o processo passa para o estado BLOCKED 
                 enqueue(R.id_running,block);
                 R.id_running = -1;
             }
-            if (R.variableId == WaitByThread){
-                int thread = mem[process[R.id_running].pc-1];
+            if (R.variableId == WaitByThread){          // caso a instrução executada seja JOIN
+                int thread = mem[process[R.id_running].pc-1];       // o processo espera pelo final da thread em questão
                 process[R.id_running].isWaiting[thread-1] = true;
                 process[R.id_running].state = WBT;
                 R.id_running = -1;
                 
             }
-            if( R.variableId == SegmentationFault){
+            if( R.variableId == SegmentationFault){         // caso ocorra uma falha de segmentação é imprimida uma mensagem
                 if(R.id_running != -1){
                     if(process[R.id_running].isThread){
                         Process p = process[R.id_running];
-                        printf("> Segmentation Error in TH%d of P%d\n",p.idThread, p.pai+1);
+                        printf("> Falha de Segmentação da TH%d do P%d\n",p.idThread, p.pai+1);
                         process[p.pai].isWaiting[p.idThread] = false;
                     }
                     else{
-                        printf("> Segmentation Error in P%d\n",R.id_running+1);
+                        printf("> Flha de Segmentação no P%d\n",R.id_running+1);
                     }
                     R.id_running = -1;
                 }
 
             }
-            if( R.variableId == InvalidVariable){
+            if( R.variableId == InvalidVariable){   // caso a instrução tente aceder uma variavel que não existe
                if(R.id_running != -1){
                    if(process[R.id_running].isThread){
                        Process p = process[R.id_running];
-                       printf("> Invalid Variable in TH%d of P%d\n",p.idThread,p.pai+1);
+                       printf("> IVariavel invalida da TH%d do P%d\n",p.idThread,p.pai+1);
                    }
                    else{
-                        printf("> Invalid Variable in P%d\n",R.id_running);
+                        printf("> Variavel invalida no P%d\n",R.id_running);
                    }
                 R.id_running = -1;
                 }
             }
             if(process[R.id_running].isThread){
-                Process p = process[R.id_running];
+                Process p = process[R.id_running];     //caso a thread termine de correr 
                 if(p.state == FINISH){
-                    process[p.pai].isWaiting[p.idThread] = false;
+                    process[p.pai].isWaiting[p.idThread] = false;   //o processo pai ja não espera mais por esta thread
                     R.id_running = -1;
                 }
             }
-            for(int c = 0; c < numOfPrograms; c++){
+            for(int c = 0; c < numOfPrograms; c++){     //verificar se processos em á espera de thread podem prosseguir
                 if(process[c].state == WBT && canProced(c)){
                     process[c].state = READY;
                     enqueue(c,ready);
@@ -1084,20 +1085,19 @@ void runner(){  //responsavel pela execução de todos os programas
             }
             
             int nOfProgramsRunning = 0;
-            for(int i = 0; i < numOfPrograms; i++){
-                if(process[i].state != FINISH){
-                    nOfProgramsRunning++;
+            for(int i = 0; i < numOfPrograms; i++){ 
+                if(process[i].state == FINISH){
+                    nOfProgramsRunning++;           //determinar o numeros de processos executando
                 }
             }
-    
-            if(nOfProgramsRunning == 0) break;
-            if(R.instant == 100) break;
+            if(nOfProgramsRunning == numOfPrograms) break;
+            //if(R.instant == 100) break;
         }
 
 }
 
 void main(){
-    char *path = "input4.txt";
+    char *path = "input1.txt";
     FILE *file = fopen(path, "r");
     if(file ==NULL){
         printf("Não foi possivel abrir o fichero!\n");
