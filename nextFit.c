@@ -58,7 +58,7 @@ struct runner{
     int quantum;            //quantum da instrunção atual
     int inputOutput;        //instantes restante para o processo no inicio da fila block passar para ready
     int instant;            // instante atual
-    //auxilares no para ajudar a imprimir a tabela dos resultados
+    //auxilares para ajudar a imprimir a tabela dos resultados
     int newl;               //tamanho da coluna new
     int readyl;             //tamanho da coluna ready
     int blockl;             //tamanho da coluna block
